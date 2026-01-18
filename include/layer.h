@@ -17,9 +17,9 @@ struct Layer {
     const size_t outputSize;
     std::vector<float> weights;
     std::vector<float> biases;
-    std::function<float(float)> fn;
+    std::function<void(std::vector<float>&)> fn;
 
-    Layer(size_t in, size_t out, const std::function<float(float)>& activation)
+    Layer(size_t in, size_t out, const std::function<void(std::vector<float>&)>& activation)
     : inputSize(in)
     , outputSize(out)
     , weights(in * out)

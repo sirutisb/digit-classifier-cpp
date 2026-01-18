@@ -21,7 +21,7 @@ int main() {
         0.001f // Learning Rate
     };
 
-    model.fit(train);
+    model.fit(train, 1);
 
     Image& testImage = train[1].image; // temporary
     model.predict(testImage);
