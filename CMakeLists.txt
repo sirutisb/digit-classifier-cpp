@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.5...4.2)
-project(digit_classifier VERSION 1.0 LANGUAGES CXX)
+project(neuralnet-cpp VERSION 1.0 LANGUAGES CXX)
+
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "src/*.cpp")
-add_executable(prog ${SOURCES})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-target_include_directories(prog PRIVATE include)
+add_subdirectory(src)

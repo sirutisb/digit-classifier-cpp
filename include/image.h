@@ -1,8 +1,8 @@
 #pragma once
 #include <cstdint>
 
-using Image = float[28][28];
-
+static constexpr std::size_t IMAGE_SIZE = 28*28;
+using Image = float[IMAGE_SIZE];
 struct LabeledImage {
     Image image;
     uint8_t label;
