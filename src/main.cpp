@@ -1,9 +1,11 @@
 #include "image.h"
 #include "loader.h"
+#include "network.h"
 #include "progress.h"
 #include "activations.h"
-#include <cstdlib>
+#include <cmath>
 #include <print>
+#include <random>
 #include <vector>
 
 std::vector<float> w1, w2, w3;
@@ -52,73 +54,16 @@ std::vector<float> forwardPass(const Image& image) {
     return activations;
 }
 
-void train_model(const std::vector<LabeledImage>& train) {
-    const LabeledImage& sample = train[0];
-    const Image& image = sample.image;
-
-    std::vector<float> a0(image, image + IMAGE_SIZE);
-    std::vector<float> z1(16), a1(16);
-    std::vector<float> z2(16), a2(16);
-    std::vector<float> z3(10), a3(10);
-
-    // 1st hidden layer (16)
-    for (int neuron = 0; neuron < a1.size(); ++neuron) {
-        float z = b1[neuron];
-        for (int i = 0; i < a0.size(); ++i) {
-            z += w1[neuron * a0.size() + i] * a0[i];
+void draw_mnist_digit(const Image& image) {
+    for (int y = 0; y < 28; ++y) {
+        for (int x = 0; x < 28; ++x) {
+            float num = image[x + y * 28];
+            uint32_t color = 232 + (uint32_t)(num * 24);
+            printf("\x1b[48;5;%dm  ", color);
         }
-        float a = sigmoid(z);
-
-        z1[neuron] = z;
-        a1[neuron] = a;
+        printf("\n");
     }
-
-    // 2nd hidden layer (16)
-    for (int neuron = 0; neuron < a2.size(); ++neuron) {
-        float z = b2[neuron];
-        for (int i = 0; i < a1.size(); ++i) {
-            z += w2[neuron * a1.size() + i] * a1[i];
-        }
-        float a = sigmoid(z);
-        z2[neuron] = z;
-        a2[neuron] = a;
-    }
-
-    // output layer (10)
-    for (int neuron = 0; neuron < a3.size(); ++neuron) {
-        float z = b3[neuron];
-        for (int i = 0; i < a2.size(); ++i) {
-            z += w3[neuron * a2.size() + i] * a2[i];
-        }
-        float a = sigmoid(z);
-        z3[neuron] = z;
-        a3[neuron] = a;
-    }
-
-    // a3 is our output
-
-    // compute deltas
-    // error is dL/da, a - t
-    // delta = dL/da * da/dz        This is shared by many neurons for the layers
-    // dL/dw = dL/da * da/dz * dz/dw
-    std::vector<float> d3(10, 0);
-    for (int i = 0; i < 10; ++i) {
-        float dL_da = a3[i] - (i == sample.label ? 1.0f : 0.0f);
-        float da_dz = a3[i] * (1.0f - a3[i]); // sigmoid derivative
-        d3[i] = dL_da * da_dz; // dL/dz
-    }
-
-    const float learning_rate = 0.01f;
-
-    for (int neuron = 0; neuron < 10; ++neuron) {
-        for (int i = 0; i < 16; i++) {
-            float grad_w = d3[neuron] * a2[i];
-            w3[neuron * 16 + i] -= grad_w * learning_rate;
-        }
-        b3[neuron] -= d3[neuron] * learning_rate;
-    }
-
-
+    printf("\x1b[0m");
 }
 
 void test_model(const std::vector<LabeledImage>& test) {
@@ -143,8 +88,12 @@ void test_model(const std::vector<LabeledImage>& test) {
         if (pred == label) correct++;
         tested++;
 
-        if (tested % (test.size() / 100) == 0) {
+        uint32_t chunks = test.size() < 100 ? 1 : test.size() / 100;
+        if (tested % chunks == 0) {
+            // draw_mnist_digit(sample.image);
+            // std::println("Predicted: {} | Label: {}", pred, label);
             updateProgress((float)tested / test.size());
+            // std::this_thread::sleep_for(std::chrono::milliseconds(500));
             // std::println("Label: {} | Predicted: {} | Accuracy: {}/{} ({}%)", label, pred, correct, tested, (float)(correct*100)/tested);
         }
     }
@@ -159,33 +108,37 @@ void test_model(const std::vector<LabeledImage>& test) {
     std::println("Accuracy: {}/{} ({}%)", correct, tested, (float)(correct*100)/tested);
 }
 
+void init_weights() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
 
-
-void setup_weights() {
     // // Setup layers
     w1.resize(784 * 16);
     w2.resize(16 * 16);
     w3.resize(16 * 10);
-    for (auto& w : w1) w = static_cast<float>(rand()) / RAND_MAX;
-    for (auto& w : w2) w = static_cast<float>(rand()) / RAND_MAX;
-    for (auto& w : w3) w = static_cast<float>(rand()) / RAND_MAX;
 
-    b1.resize(16, 0);
-    b2.resize(16, 0);
-    b3.resize(10, 0);
+    b1.assign(16, 0.0f);
+    b2.assign(16, 0.0f);
+    b3.assign(10, 0.0f);
 
-    // load trained
-    w1 = load_floats("../test/0_weight.bin", w1.size());
-    w2 = load_floats("../test/2_weight.bin", w2.size());
-    w3 = load_floats("../test/4_weight.bin", w3.size());
-    b1 = load_floats("../test/0_bias.bin", b1.size());
-    b2 = load_floats("../test/2_bias.bin", b2.size());
-    b3 = load_floats("../test/4_bias.bin", b3.size());
+    auto xavier_init = [&](float input_size) {
+        return std::normal_distribution<float>(0.0, sqrtf(1.0f / input_size)); // Standard Xavier for Sigmoid
+    };
+
+    auto dist1 = xavier_init(784.0f);
+    auto dist2 = xavier_init(16.0f);
+    auto dist3 = xavier_init(16.0f);
+    for (auto& w : w1) w = dist1(gen);
+    for (auto& w : w2) w = dist2(gen);
+    for (auto& w : w3) w = dist3(gen);
 }
 
 int main() {
-    auto [train, test] = load_train_test(0);
-    setup_weights();
+    auto [train, test] = load_train_test(60000, 10000);
+    init_weights();
+
+    train_model(train, 8, 0.01f, w1, w2, w3, b1, b2, b3);
+
     test_model(test);
     return 0;
 }

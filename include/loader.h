@@ -8,4 +8,9 @@ std::vector<LabeledImage> loadImages(const std::string& imPath, const std::strin
 std::vector<float> load_floats(const std::string& path, int size);
 
 
-std::pair<std::vector<LabeledImage>, std::vector<LabeledImage>> load_train_test(size_t count = 0);
+std::pair<std::vector<LabeledImage>, std::vector<LabeledImage>> load_train_test(size_t train_count = 0, size_t test_count = 0);
+
+void load_pretrained(
+    std::vector<float>& w1, std::vector<float>& w2, std::vector<float>& w3,
+    std::vector<float>& b1, std::vector<float>& b2, std::vector<float>& b3
+);
