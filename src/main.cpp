@@ -137,7 +137,7 @@ int main() {
     auto [train, test] = load_train_test(60000, 10000);
     init_weights();
 
-    train_model(train, 8, 0.01f, w1, w2, w3, b1, b2, b3);
+    train_model(train, 12, 64, 0.01f, w1, w2, w3, b1, b2, b3);
 
     test_model(test);
     return 0;
