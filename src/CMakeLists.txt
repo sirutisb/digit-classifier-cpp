@@ -3,6 +3,7 @@ add_executable(prog
     loader.cpp
     progress.cpp
     network.cpp
+    model.cpp
 )
 
 target_include_directories(prog PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../include")

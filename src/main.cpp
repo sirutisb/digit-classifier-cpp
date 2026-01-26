@@ -1,58 +1,14 @@
 #include "image.h"
 #include "loader.h"
+#include "matrix.h"
+#include "model.h"
 #include "network.h"
 #include "progress.h"
-#include "activations.h"
-#include <cmath>
 #include <print>
-#include <random>
 #include <vector>
 
 std::vector<float> w1, w2, w3;
 std::vector<float> b1, b2, b3;
-
-std::vector<float> forwardPass(const Image& image) {
-    std::vector<float> activations(image, image + IMAGE_SIZE);
-    std::vector<float> next;
-
-    // 1st hidden layer
-    next = std::vector<float>(16, 0);
-    for (int neuron = 0; neuron < next.size(); ++neuron) {
-        float z = b1[neuron];
-        for (int i = 0; i < activations.size(); ++i) {
-            z += w1[neuron * activations.size() + i] * activations[i];
-        }
-        next[neuron] = z;
-    }
-    activations = std::move(next);
-    sigmoid_all(activations);
-
-    // 2nd hidden layer
-    next = std::vector<float>(16, 0);
-    for (int neuron = 0; neuron < next.size(); ++neuron) {
-        float z = b2[neuron];
-        for (int i = 0; i < activations.size(); ++i) {
-            z += w2[neuron * activations.size() + i] * activations[i];
-        }
-        next[neuron] = z;
-    }
-    activations = std::move(next);
-    sigmoid_all(activations);
-
-    // output layer
-    next = std::vector<float>(10, 0);
-    for (int neuron = 0; neuron < next.size(); ++neuron) {
-        float z = b3[neuron];
-        for (int i = 0; i < activations.size(); ++i) {
-            z += w3[neuron * activations.size() + i] * activations[i];
-        }
-        next[neuron] = z;
-    }
-    activations = std::move(next);
-    sigmoid_all(activations);
-
-    return activations;
-}
 
 void draw_mnist_digit(const Image& image) {
     for (int y = 0; y < 28; ++y) {
@@ -72,7 +28,7 @@ void test_model(const std::vector<LabeledImage>& test) {
 
     int correct = 0, tested = 0;
     for (const auto& sample : test) {
-        auto out = forwardPass(sample.image);
+        auto out = forwardPass(sample.image, w1, w2, w3, b1, b2, b3);
         int argmax = 0;
         float valmax = out[0];
         for (int i = 1; i < 10; i++) {
@@ -108,37 +64,46 @@ void test_model(const std::vector<LabeledImage>& test) {
     std::println("Accuracy: {}/{} ({}%)", correct, tested, (float)(correct*100)/tested);
 }
 
-void init_weights() {
-    std::random_device rd;
-    std::mt19937 gen(rd());
+int main() {
 
-    // // Setup layers
-    w1.resize(784 * 16);
-    w2.resize(16 * 16);
-    w3.resize(16 * 10);
+    std::println("Making matrixes");
+    Matrix m1(3, 3);
+    Matrix m2(3, 3);
 
-    b1.assign(16, 0.0f);
-    b2.assign(16, 0.0f);
-    b3.assign(10, 0.0f);
+    std::println("Making set");
+    for (int i = 1; i <= 3; i++) {
+        for (int j = 1; j <= 3; ++j) {
+            m1.get(i-1, j-1) = i * 3 + j;
+            m2.get(i-1, j-1) = i * 3 + j;
+        }
+    }
 
-    auto xavier_init = [&](float input_size) {
-        return std::normal_distribution<float>(0.0, sqrtf(1.0f / input_size)); // Standard Xavier for Sigmoid
+    std::println("Mult");
+    Matrix m3 = m1 * m2;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; ++j) {
+            auto v = m3.get(i, j);
+            std::print("{} ", v);
+        }
+        std::println();
+    }
+
+    return 1;
+    auto [train, test] = load_train_test(6000, 2000);
+
+    Model model{
+        {784, Activation::None},
+        {16, Activation::Sigmoid},
+        {16, Activation::Sigmoid},
+        {10, Activation::Sigmoid},
     };
 
-    auto dist1 = xavier_init(784.0f);
-    auto dist2 = xavier_init(16.0f);
-    auto dist3 = xavier_init(16.0f);
-    for (auto& w : w1) w = dist1(gen);
-    for (auto& w : w2) w = dist2(gen);
-    for (auto& w : w3) w = dist3(gen);
-}
+    model.fit(train, 12, 64, 0.01f);
+    model.evaluate(test);
 
-int main() {
-    auto [train, test] = load_train_test(60000, 10000);
-    init_weights();
 
-    train_model(train, 12, 64, 0.01f, w1, w2, w3, b1, b2, b3);
+    // train_model(train, 12, 64, 0.01f, w1, w2, w3, b1, b2, b3);
 
-    test_model(test);
+    // test_model(test);
     return 0;
 }
