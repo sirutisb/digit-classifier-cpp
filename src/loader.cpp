@@ -75,15 +75,28 @@ std::vector<float> load_floats(const std::string& path, int size) {
 }
 
 std::pair<std::vector<LabeledImage>, std::vector<LabeledImage>> load_train_test(size_t train_count, size_t test_count) {
+    // auto train = loadImages(
+    //     "../dataset/train-images.idx3-ubyte",
+    //     "../dataset/train-labels.idx1-ubyte",
+    //     train_count
+    // );
+
+    // auto test = loadImages(
+    //     "../dataset/t10k-images.idx3-ubyte",
+    //     "../dataset/t10k-labels.idx1-ubyte",
+    //     test_count
+    // );
+
     auto train = loadImages(
-        "../dataset/train-images.idx3-ubyte",
-        "../dataset/train-labels.idx1-ubyte",
+        "/home/pulse/Desktop/digit-classifier/dataset/train-images.idx3-ubyte",
+        "/home/pulse/Desktop/digit-classifier/dataset/train-labels.idx1-ubyte",
         train_count
     );
 
+
     auto test = loadImages(
-        "../dataset/t10k-images.idx3-ubyte",
-        "../dataset/t10k-labels.idx1-ubyte",
+        "/home/pulse/Desktop/digit-classifier/dataset/t10k-images.idx3-ubyte",
+        "/home/pulse/Desktop/digit-classifier/dataset/t10k-labels.idx1-ubyte",
         test_count
     );
 
@@ -100,4 +113,18 @@ void load_pretrained(
     b1 = load_floats("../test/0_bias.bin", b1.size());
     b2 = load_floats("../test/2_bias.bin", b2.size());
     b3 = load_floats("../test/4_bias.bin", b3.size());
+}
+
+
+// should be in its own file tbh
+void draw_mnist_digit(const Image& image) {
+    for (int y = 0; y < 28; ++y) {
+        for (int x = 0; x < 28; ++x) {
+            float num = image[x + y * 28];
+            uint32_t color = 232 + (uint32_t)(num * 24);
+            printf("\x1b[48;5;%dm  ", color);
+        }
+        printf("\n");
+    }
+    printf("\x1b[0m");
 }

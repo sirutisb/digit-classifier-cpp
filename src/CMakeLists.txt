@@ -1,3 +1,5 @@
+# add_compile_options(-g)
+
 add_executable(prog
     main.cpp
     loader.cpp
