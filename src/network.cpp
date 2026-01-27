@@ -1,5 +1,6 @@
 #include "network.h"
 #include "activations.h"
+#include "progress.h"
 #include <print>
 
 std::vector<float> forwardPass(
@@ -46,6 +47,46 @@ std::vector<float>& b1, std::vector<float>& b2, std::vector<float>& b3) {
     sigmoid_all(activations);
 
     return activations;
+}
+
+void test_model(const std::vector<LabeledImage>& test,
+std::vector<float>& w1, std::vector<float>& w2, std::vector<float>& w3,
+std::vector<float>& b1, std::vector<float>& b2, std::vector<float>& b3) {
+    std::println("Testing model with {} images...", test.size());
+    std::vector<std::vector<int>> cm(10, std::vector<int>(10, 0));
+
+    int correct = 0, tested = 0;
+    for (const auto& sample : test) {
+        auto out = forwardPass(sample.image, w1, w2, w3, b1, b2, b3);
+        int argmax = 0;
+        float valmax = out[0];
+        for (int i = 1; i < 10; i++) {
+            if (out[i] > valmax) {
+                valmax = out[i];
+                argmax = i;
+            }
+        }
+        uint8_t label = sample.label;
+        uint8_t pred = argmax;
+
+        cm[pred][label]++;
+        if (pred == label) correct++;
+        tested++;
+
+        uint32_t chunks = test.size() < 100 ? 1 : test.size() / 100;
+        if (tested % chunks == 0) {
+            updateProgress((float)tested / test.size());
+        }
+    }
+
+    std::println("Confusion Matrix:");
+    for (int r = 0; r < 10; ++r) {
+        for (int c = 0; c < 10; ++c) {
+            std::print("{} \t", cm[r][c]);
+        }
+        std::println("\n\n");
+    }
+    std::println("Accuracy: {}/{} ({}%)", correct, tested, (float)(correct*100)/tested);
 }
 
 void run_model_iter(const std::vector<LabeledImage>& train, int batch_size, float learning_rate, int epoch,

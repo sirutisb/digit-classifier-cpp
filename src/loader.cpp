@@ -101,3 +101,17 @@ void load_pretrained(
     b2 = load_floats("../test/2_bias.bin", b2.size());
     b3 = load_floats("../test/4_bias.bin", b3.size());
 }
+
+
+// should be in its own file tbh
+void draw_mnist_digit(const Image& image) {
+    for (int y = 0; y < 28; ++y) {
+        for (int x = 0; x < 28; ++x) {
+            float num = image[x + y * 28];
+            uint32_t color = 232 + (uint32_t)(num * 24);
+            printf("\x1b[48;5;%dm  ", color);
+        }
+        printf("\n");
+    }
+    printf("\x1b[0m");
+}
