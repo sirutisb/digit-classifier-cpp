@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <cstdio>
 
 static constexpr std::size_t IMAGE_SIZE = 28*28;
 using Image = float[IMAGE_SIZE];

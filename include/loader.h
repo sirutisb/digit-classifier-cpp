@@ -14,3 +14,5 @@ void load_pretrained(
     std::vector<float>& w1, std::vector<float>& w2, std::vector<float>& w3,
     std::vector<float>& b1, std::vector<float>& b2, std::vector<float>& b3
 );
+
+void draw_mnist_digit(const Image& image);

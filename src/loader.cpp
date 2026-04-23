@@ -42,9 +42,9 @@ std::vector<LabeledImage> loadImages(const std::string& imPath, const std::strin
 
     std::println("Loading {} images from {} of size {}x{}", im_count, imPath, im_rows, im_cols);
     std::vector<LabeledImage> images(im_count);
-    uint32_t n = im_rows * im_cols;
-    const uint32_t chunks = im_count < 100 ? 1 : im_count / 100;
-    for (uint32_t im = 0; im < im_count; ++im) {
+    size_t n = im_rows * im_cols;
+    const size_t chunks = im_count < 100 ? 1 : im_count / 100;
+    for (size_t im = 0; im < im_count; ++im) {
         uint8_t d; ls.read(reinterpret_cast<char*>(&d), 1);
         images[im].label = (uint8_t)d;
         for (size_t p = 0; p < n; ++p) {
@@ -100,4 +100,18 @@ void load_pretrained(
     b1 = load_floats("../test/0_bias.bin", b1.size());
     b2 = load_floats("../test/2_bias.bin", b2.size());
     b3 = load_floats("../test/4_bias.bin", b3.size());
+}
+
+
+// should be in its own file tbh
+void draw_mnist_digit(const Image& image) {
+    for (int y = 0; y < 28; ++y) {
+        for (int x = 0; x < 28; ++x) {
+            float num = image[x + y * 28];
+            uint32_t color = 232 + (uint32_t)(num * 24);
+            printf("\x1b[48;5;%dm  ", color);
+        }
+        printf("\n");
+    }
+    printf("\x1b[0m");
 }

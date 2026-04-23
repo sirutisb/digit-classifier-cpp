@@ -1,3 +1,4 @@
 .cache/
+.zed/
 build/
 /.vs
