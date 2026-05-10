@@ -2,6 +2,9 @@
 #include "activations.h"
 #include "progress.h"
 #include <print>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 std::vector<float> forwardPass(
 const Image& image,
@@ -12,6 +15,7 @@ std::vector<float>& b1, std::vector<float>& b2, std::vector<float>& b3) {
 
     // 1st hidden layer
     next = std::vector<float>(16, 0);
+     #pragma omp parallel for if(next.size() > 8)
     for (int neuron = 0; neuron < next.size(); ++neuron) {
         float z = b1[neuron];
         for (int i = 0; i < activations.size(); ++i) {
@@ -24,6 +28,7 @@ std::vector<float>& b1, std::vector<float>& b2, std::vector<float>& b3) {
 
     // 2nd hidden layer
     next = std::vector<float>(16, 0);
+    #pragma omp parallel for if(next.size() > 8)
     for (int neuron = 0; neuron < next.size(); ++neuron) {
         float z = b2[neuron];
         for (int i = 0; i < activations.size(); ++i) {
@@ -36,6 +41,7 @@ std::vector<float>& b1, std::vector<float>& b2, std::vector<float>& b3) {
 
     // output layer
     next = std::vector<float>(10, 0);
+    #pragma omp parallel for if(next.size() > 8)
     for (int neuron = 0; neuron < next.size(); ++neuron) {
         float z = b3[neuron];
         for (int i = 0; i < activations.size(); ++i) {
@@ -56,7 +62,10 @@ std::vector<float>& b1, std::vector<float>& b2, std::vector<float>& b3) {
     std::vector<std::vector<int>> cm(10, std::vector<int>(10, 0));
 
     int correct = 0, tested = 0;
-    for (const auto& sample : test) {
+
+    #pragma omp parallel for reduction(+:correct,tested)
+    for (int idx = 0; idx < static_cast<int>(test.size()); ++idx) {
+        const auto& sample = test[idx];
         auto out = forwardPass(sample.image, w1, w2, w3, b1, b2, b3);
         int argmax = 0;
         float valmax = out[0];
@@ -69,16 +78,15 @@ std::vector<float>& b1, std::vector<float>& b2, std::vector<float>& b3) {
         uint8_t label = sample.label;
         uint8_t pred = argmax;
 
-        cm[pred][label]++;
+        #pragma omp critical
+        {
+            cm[pred][label]++;
+        }
         if (pred == label) correct++;
         tested++;
-
-        uint32_t chunks = test.size() < 100 ? 1 : test.size() / 100;
-        if (tested % chunks == 0) {
-            updateProgress((float)tested / test.size());
-        }
     }
 
+    updateProgress(1.0f);
     std::println("Confusion Matrix:");
     for (int r = 0; r < 10; ++r) {
         for (int c = 0; c < 10; ++c) {
