@@ -35,8 +35,8 @@ Model::Model(const std::initializer_list<LayerConfig>& config) {
 
         auto& ws = weights_.emplace_back();
         ws.reserve(weight_count);
-        // auto w_dist = xavier_init(in->size);
-        auto w_dist = he_init(in->size);
+        auto w_dist = xavier_init(in->size);
+        // auto w_dist = he_init(in->size);
         for (size_t i = 0; i < weight_count; ++i) ws.push_back(w_dist(gen));
         biases_.emplace_back(out->size, 0); // set output size and fill with 0's
 
