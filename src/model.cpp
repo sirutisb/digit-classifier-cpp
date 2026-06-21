@@ -7,6 +7,9 @@
 #include <random>
 #include <print>
 #include "loader.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 Model::Model(const std::initializer_list<LayerConfig>& config) {
     if (config.size() <= 1) return;
@@ -109,6 +112,7 @@ std::vector<TrainHistory> Model::fit(const std::vector<LabeledImage>& train, int
                 size_t input_size = input.size();
                 size_t output_size = output.size();
 
+                #pragma omp parallel for if(output_size > 8)
                 for (size_t j = 0; j < output_size; ++j) {
                     float z = b[j];
                     for (size_t k = 0; k < input_size; ++k) {
@@ -151,6 +155,7 @@ std::vector<TrainHistory> Model::fit(const std::vector<LabeledImage>& train, int
                 const auto& d_next = d[i + 1];
                 auto& d_curr = d[i];
 
+                #pragma omp parallel for if(d_curr.size() > 8)
                 for (size_t k = 0; k < d_curr.size(); ++k) {
                     float error_sum = 0.0f;
                     for (size_t j = 0; j < d_next.size(); ++j) {
@@ -187,10 +192,12 @@ std::vector<TrainHistory> Model::fit(const std::vector<LabeledImage>& train, int
                     float w_size = weights_[l].size();
                     float b_size = biases_[l].size();
 
+                    #pragma omp parallel for if(w_size > 128)
                     for (size_t w = 0; w < w_size; ++w) {
                         weights_[l][w] -= w_grad[l][w] * scaler;
                         w_grad[l][w] = 0.0f;
                     }
+                    #pragma omp parallel for if(b_size > 8)
                     for (size_t b = 0; b < b_size; ++b) {
                         biases_[l][b] -= b_grad[l][b] * scaler;
                         b_grad[l][b] = 0.0f;
